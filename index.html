@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>VEXO EGYPT | ADVANCED AI HUD</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd"></script>
+    <style>
+        :root { --neon-blue: #00f2fe; --deep-blue: #0ea5e9; --dark-bg: #020617; }
+        body { background: var(--dark-bg); color: #fff; font-family: 'Courier New', monospace; margin: 0; overflow: hidden; height: 100vh; display: flex; flex-direction: column; }
+        
+        /* منطقة الرؤية الرقمية (The HUD) */
+        .vision-sector { position: relative; width: 100%; height: 50vh; background: #000; border-bottom: 2px solid var(--deep-blue); }
+        video { width: 100%; height: 100%; object-fit: cover; opacity: 0.8; }
+        canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; }
+        
+        /* العناصر الرقمية العائمة (Floating HUD) */
+        .hud-frame { position: absolute; border: 1px solid rgba(0, 242, 254, 0.3); background: rgba(0, 0, 0, 0.5); padding: 5px 10px; font-size: 0.75em; border-left: 4px solid var(--neon-blue); }
+        .top-left { top: 15px; left: 15px; }
+        .top-right { top: 15px; right: 15px; text-align: right; }
+        .bottom-right { bottom: 15px; right: 15px; color: var(--neon-blue); font-weight: bold; }
+        
+        /* لوحة التحكم السفلية */
+        .control-deck { flex: 1; background: #0f172a; padding: 20px; border-top-left-radius: 25px; border-top-right-radius: 25px; box-shadow: 0 -10px 30px rgba(0,0,0,0.8); }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 15px; }
+        .btn { background: #1e293b; color: #fff; padding: 15px; border: 1px solid var(--deep-blue); border-radius: 12px; font-weight: bold; cursor: pointer; transition: 0.2s; }
+        .btn:active { background: var(--neon-blue); color: #000; }
+        .btn-voice { grid-column: span 2; background: var(--deep-blue); font-size: 1.2em; border: none; box-shadow: 0 0 15px rgba(14, 165, 233, 0.5); }
+
+        #log-screen { background: #000; color: #4ade80; font-size: 0.8em; padding: 10px; border-radius: 8px; margin-top: 10px; height: 80px; overflow-y: auto; border: 1px solid #1e293b; }
+    </style>
+</head>
+<body>
+
+    <div class="vision-sector">
+        <video id="webcam" autoplay muted playsinline></video>
+        <canvas id="canvas"></canvas>
+        <div class="hud-frame top-left">SYS: VEXO-OS v10.2<br>STAT: SCANNING...</div>
+        <div class="hud-frame top-right">AI CORE: ACTIVE<br>LOC: ISMAILIA, EG</div>
+        <div class="hud-frame bottom-right">OBJECTS DETECTED: <span id="obj-count">0</span></div>
+    </div>
+
+    <div class="control-deck">
+        <div style="text-align: center;">
+            <h2 style="margin:0; color:var(--neon-blue)">VEXO EGYPT PRO</h2>
+            <small id="status-msg">النظام جاهز يا هندسة</small>
+        </div>
+
+        <button class="btn btn-voice" onclick="startVexoVoice()">تحدث مع فيكسو 🎙️</button>
+        
+        <div class="grid">
+            <button class="btn" onclick="triggerApp('com.veteasy.poultry')">تطبيق بولتري</button>
+            <button class="btn" onclick="triggerApp('com.elwadi.poultry')">كتكوت الوادي</button>
+            <button class="btn" onclick="toggleTorch()">كشاف 💡</button>
+            <button class="btn" onclick="exportData()">تصدير 📄</button>
+        </div>
+
+        <div id="log-screen">-- سجل العمليات --</div>
+    </div>
+
+<script>
+    const video = document.getElementById('webcam');
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    let model, stream;
+
+    // تشغيل الكاميرا والذكاء الاصطناعي
+    async function initSystem() {
+        try {
+            stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+            video.srcObject = stream;
+            model = await cocoSsd.load();
+            detect();
+        } catch (e) { addToLog("خطأ في بدء النظام: " + e); }
+    }
+
+    async function detect() {
+        const predictions = await model.detect(video);
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        document.getElementById('obj-count').innerText = predictions.length;
+
+        predictions.forEach(p => {
+            const [x, y, w, h] = p.bbox;
+            // رسم زوايا نيون احترافية
+            ctx.strokeStyle = '#00f2fe';
+            ctx.lineWidth = 3;
+            ctx.strokeRect(x, y, w, h);
+            ctx.fillStyle = '#00f2fe';
+            ctx.fillText("VEXO-ID: " + p.class, x, y - 5);
+        });
+        requestAnimationFrame(detect);
+    }
+
+    function startVexoVoice() {
+        const rec = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+        rec.lang = 'ar-SA';
+        rec.onstart = () => { document.getElementById('status-msg').innerText = "فيكسو يسمعك..."; };
+        rec.onresult = (e) => {
+            const cmd = e.results[0][0].transcript;
+            addToLog("أمر صوتي: " + cmd);
+            if(cmd.includes("وزن")) triggerApp('com.veteasy.poultry');
+            else if(cmd.includes("كشاف")) toggleTorch();
+        };
+        rec.start();
+    }
+
+    function triggerApp(pkg) {
+        window.location.href = `intent://#Intent;scheme=android.intent.action.MAIN;package=${pkg};end`;
+    }
+
+    function addToLog(m) {
+        const log = document.getElementById('log-screen');
+        log.innerHTML += `<br>[${new Date().toLocaleTimeString()}] ${m}`;
+        log.scrollTop = log.scrollHeight;
+    }
+
+    async function toggleTorch() {
+        const track = stream.getVideoTracks()[0];
+        const caps = track.getCapabilities();
+        if(caps.torch) track.applyConstraints({advanced: [{torch: !track.getSettings().torch}]});
+    }
+
+    initSystem();
+</script>
+</body>
+</html>
