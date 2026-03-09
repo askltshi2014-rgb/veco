@@ -8,27 +8,28 @@
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd"></script>
     <style>
         :root { --neon-blue: #00f2fe; --deep-blue: #0ea5e9; --dark-bg: #020617; }
-        body { background: var(--dark-bg); color: #fff; font-family: 'Courier New', monospace; margin: 0; overflow: hidden; height: 100vh; display: flex; flex-direction: column; }
+        body { background: var(--dark-bg); color: #fff; font-family: 'Segoe UI', Tahoma, sans-serif; margin: 0; overflow: hidden; height: 100vh; display: flex; flex-direction: column; }
         
         /* منطقة الرؤية الرقمية (The HUD) */
         .vision-sector { position: relative; width: 100%; height: 50vh; background: #000; border-bottom: 2px solid var(--deep-blue); }
-        video { width: 100%; height: 100%; object-fit: cover; opacity: 0.8; }
+        video { width: 100%; height: 100%; object-fit: cover; opacity: 0.9; }
         canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; }
         
-        /* العناصر الرقمية العائمة (Floating HUD) */
-        .hud-frame { position: absolute; border: 1px solid rgba(0, 242, 254, 0.3); background: rgba(0, 0, 0, 0.5); padding: 5px 10px; font-size: 0.75em; border-left: 4px solid var(--neon-blue); }
+        /* عناصر الـ HUD الاحترافية */
+        .hud-frame { position: absolute; border: 1px solid rgba(0, 242, 254, 0.3); background: rgba(0, 0, 0, 0.6); padding: 5px 10px; font-size: 0.7em; border-left: 4px solid var(--neon-blue); font-family: monospace; }
         .top-left { top: 15px; left: 15px; }
         .top-right { top: 15px; right: 15px; text-align: right; }
         .bottom-right { bottom: 15px; right: 15px; color: var(--neon-blue); font-weight: bold; }
         
         /* لوحة التحكم السفلية */
-        .control-deck { flex: 1; background: #0f172a; padding: 20px; border-top-left-radius: 25px; border-top-right-radius: 25px; box-shadow: 0 -10px 30px rgba(0,0,0,0.8); }
-        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 15px; }
-        .btn { background: #1e293b; color: #fff; padding: 15px; border: 1px solid var(--deep-blue); border-radius: 12px; font-weight: bold; cursor: pointer; transition: 0.2s; }
-        .btn:active { background: var(--neon-blue); color: #000; }
-        .btn-voice { grid-column: span 2; background: var(--deep-blue); font-size: 1.2em; border: none; box-shadow: 0 0 15px rgba(14, 165, 233, 0.5); }
+        .control-deck { flex: 1; background: #0f172a; padding: 20px; border-top-left-radius: 30px; border-top-right-radius: 30px; box-shadow: 0 -10px 40px rgba(0,0,0,1); display: flex; flex-direction: column; }
+        .status-box { text-align: center; margin-bottom: 15px; border-bottom: 1px solid #1e293b; padding-bottom: 10px; }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .btn { background: #1e293b; color: #fff; padding: 15px; border: 1px solid var(--deep-blue); border-radius: 15px; font-weight: bold; cursor: pointer; font-size: 0.9em; transition: 0.2s; }
+        .btn:active { background: var(--neon-blue); color: #000; transform: scale(0.95); }
+        .btn-voice { grid-column: span 2; background: var(--deep-blue); font-size: 1.25em; border: none; box-shadow: 0 0 20px rgba(14, 165, 233, 0.6); margin-bottom: 5px; }
 
-        #log-screen { background: #000; color: #4ade80; font-size: 0.8em; padding: 10px; border-radius: 8px; margin-top: 10px; height: 80px; overflow-y: auto; border: 1px solid #1e293b; }
+        #log-screen { background: #000; color: #4ade80; font-family: monospace; font-size: 0.8em; padding: 10px; border-radius: 12px; margin-top: 15px; flex: 1; overflow-y: auto; border: 1px solid #1e293b; text-align: left; }
     </style>
 </head>
 <body>
@@ -36,24 +37,24 @@
     <div class="vision-sector">
         <video id="webcam" autoplay muted playsinline></video>
         <canvas id="canvas"></canvas>
-        <div class="hud-frame top-left">SYS: VEXO-OS v10.2<br>STAT: SCANNING...</div>
-        <div class="hud-frame top-right">AI CORE: ACTIVE<br>LOC: ISMAILIA, EG</div>
-        <div class="hud-frame bottom-right">OBJECTS DETECTED: <span id="obj-count">0</span></div>
+        <div class="hud-frame top-left">SYSTEM: VEXO-OS v10.2<br>HSE STATUS: ACTIVE</div>
+        <div class="hud-frame top-right">LOCATION: ISMAILIA, EG<br>VEXO EGYPT HQ</div>
+        <div class="hud-frame bottom-right">OBJECTS: <span id="obj-count">0</span></div>
     </div>
 
     <div class="control-deck">
-        <div style="text-align: center;">
-            <h2 style="margin:0; color:var(--neon-blue)">VEXO EGYPT PRO</h2>
-            <small id="status-msg">النظام جاهز يا هندسة</small>
+        <div class="status-box">
+            <h2 style="margin:0; color:var(--neon-blue); font-size: 1.5em;">VEXO EGYPT 🛡️</h2>
+            <small id="status-msg" style="color:#94a3b8">فيكسو جاهز يا هندسة.. مستني أوامرك</small>
         </div>
 
         <button class="btn btn-voice" onclick="startVexoVoice()">تحدث مع فيكسو 🎙️</button>
         
         <div class="grid">
-            <button class="btn" onclick="triggerApp('com.veteasy.poultry')">تطبيق بولتري</button>
-            <button class="btn" onclick="triggerApp('com.elwadi.poultry')">كتكوت الوادي</button>
+            <button class="btn" onclick="triggerApp('poultry')">فتح بولتري</button>
+            <button class="btn" onclick="triggerApp('wadi')">كتكوت الوادي</button>
             <button class="btn" onclick="toggleTorch()">كشاف 💡</button>
-            <button class="btn" onclick="exportData()">تصدير 📄</button>
+            <button class="btn" style="border-color:#adff2f; color:#adff2f" onclick="exportData()">تصدير التقارير 📄</button>
         </div>
 
         <div id="log-screen">-- سجل العمليات --</div>
@@ -63,62 +64,123 @@
     const video = document.getElementById('webcam');
     const canvas = document.getElementById('canvas');
     const ctx = canvas.getContext('2d');
-    let model, stream;
+    const logScreen = document.getElementById('log-screen');
+    const statusMsg = document.getElementById('status-msg');
+    let model, stream, isFlash = false;
+    let fullLog = [];
 
     // تشغيل الكاميرا والذكاء الاصطناعي
     async function initSystem() {
         try {
-            stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+            stream = await navigator.mediaDevices.getUserMedia({ 
+                video: { facingMode: 'environment', focusMode: 'continuous' } 
+            });
             video.srcObject = stream;
+            addToLog("جاري تحميل العقل الرقمي...");
             model = await cocoSsd.load();
+            addToLog("النظام يعمل بكفاءة ✅");
             detect();
-        } catch (e) { addToLog("خطأ في بدء النظام: " + e); }
+        } catch (e) { addToLog("خطأ في بدء الكاميرا: " + e); }
     }
 
     async function detect() {
+        if(!model) return;
         const predictions = await model.detect(video);
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         document.getElementById('obj-count').innerText = predictions.length;
 
         predictions.forEach(p => {
             const [x, y, w, h] = p.bbox;
-            // رسم زوايا نيون احترافية
+            // رسم زوايا نيون (Style 2026)
             ctx.strokeStyle = '#00f2fe';
-            ctx.lineWidth = 3;
+            ctx.lineWidth = 4;
             ctx.strokeRect(x, y, w, h);
             ctx.fillStyle = '#00f2fe';
-            ctx.fillText("VEXO-ID: " + p.class, x, y - 5);
+            ctx.font = '16px monospace';
+            ctx.fillText(`VEXO-ID: ${p.class}`, x, y - 10);
         });
         requestAnimationFrame(detect);
     }
 
+    // المساعد الصوتي فيكسو
+    function speak(text) {
+        window.speechSynthesis.cancel();
+        const msg = new SpeechSynthesisUtterance(text);
+        msg.lang = 'ar-SA';
+        window.speechSynthesis.speak(msg);
+        statusMsg.innerText = text;
+    }
+
     function startVexoVoice() {
-        const rec = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (!SpeechRecognition) {
+            alert("المتصفح لا يدعم التعرف على الصوت");
+            return;
+        }
+        const rec = new SpeechRecognition();
         rec.lang = 'ar-SA';
-        rec.onstart = () => { document.getElementById('status-msg').innerText = "فيكسو يسمعك..."; };
+        
+        rec.onstart = () => { statusMsg.innerText = "فيكسو بيسمعك يا هندسة..."; };
+        
         rec.onresult = (e) => {
             const cmd = e.results[0][0].transcript;
-            addToLog("أمر صوتي: " + cmd);
-            if(cmd.includes("وزن")) triggerApp('com.veteasy.poultry');
-            else if(cmd.includes("كشاف")) toggleTorch();
+            addToLog("أنت: " + cmd);
+            processCommand(cmd);
         };
+
+        rec.onerror = (e) => { addToLog("خطأ مايك: " + e.error); };
         rec.start();
     }
 
-    function triggerApp(pkg) {
-        window.location.href = `intent://#Intent;scheme=android.intent.action.MAIN;package=${pkg};end`;
+    function processCommand(cmd) {
+        if (cmd.includes("وزن") || cmd.includes("بولتري")) {
+            speak("حاضر يا هندسة.. بفتح تطبيق الأوزان");
+            setTimeout(() => triggerApp('poultry'), 1500);
+        } else if (cmd.includes("الوادي") || cmd.includes("كتكوت")) {
+            speak("بفتح تطبيق كتكوت الوادي");
+            setTimeout(() => triggerApp('wadi'), 1500);
+        } else if (cmd.includes("ملاحظة")) {
+            const note = cmd.replace("ملاحظة", "").trim();
+            speak("تم تسجيل الملاحظة بنجاح");
+            addToLog("📝 ملاحظة: " + note);
+        } else if (cmd.includes("كشاف") || cmd.includes("نور")) {
+            toggleTorch();
+            speak(isFlash ? "شغلت الكشاف" : "طفيته");
+        } else {
+            speak("سمعتك بتقول " + cmd);
+        }
+    }
+
+    // فتح التطبيقات مباشرة (Package Names Corrected)
+    function triggerApp(type) {
+        let pkg = (type === 'poultry') ? "com.poultry.project" : "com.katkoot.alwadi";
+        const intent = `intent://#Intent;scheme=android.intent.action.MAIN;package=${pkg};end`;
+        window.location.href = intent;
     }
 
     function addToLog(m) {
-        const log = document.getElementById('log-screen');
-        log.innerHTML += `<br>[${new Date().toLocaleTimeString()}] ${m}`;
-        log.scrollTop = log.scrollHeight;
+        const time = new Date().toLocaleTimeString('ar-EG');
+        const entry = `[${time}] ${m}`;
+        fullLog.push(entry);
+        logScreen.innerHTML = fullLog.slice(-10).join('<br>');
+        logScreen.scrollTop = logScreen.scrollHeight;
     }
 
     async function toggleTorch() {
         const track = stream.getVideoTracks()[0];
-        const caps = track.getCapabilities();
-        if(caps.torch) track.applyConstraints({advanced: [{torch: !track.getSettings().torch}]});
+        isFlash = !isFlash;
+        try {
+            await track.applyConstraints({ advanced: [{ torch: isFlash }] });
+        } catch (e) { addToLog("الفلاش غير مدعوم"); }
+    }
+
+    function exportData() {
+        const blob = new Blob([fullLog.join('\n')], { type: 'text/plain' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = `Vexo_Report_${new Date().toLocaleDateString()}.txt`;
+        a.click();
+        speak("تم تصدير التقرير يا هندسة");
     }
 
     initSystem();
